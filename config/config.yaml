@@ -1,0 +1,57 @@
+# paths relative to repo root
+# Secrets from env variables
+
+project:
+  name: 202610_zenika_assignment
+  log_level: INFO             # Alternatives: DEBUG or INFO or Warning or Error
+
+# --------------------------------
+# Bronze Ingestion (Source: data.gov.sg)
+# --------------------------------
+
+source:
+  collection_id: 189
+  collection_metadata_url: "https://api-production.data.gov.sg/v2/public/api/collections/{collection_id}/metadata?withDatasetMetadata=true"
+  initiate_download_url: "https://api-open.data.gov.sg/v1/public/api/datasets/{dataset_id}/initiate-download"
+  request_timeout_seconds: 30
+  download_timeout_seconds: 300
+  rate_limit_delay_seconds: 10
+  max_retries: 3
+  retry_backoff_seconds: 2
+  chunk_size_bytes: 1048576 # 1 MiB
+
+# --------------------------------
+# Paths
+# --------------------------------
+paths:
+  bronze_raw: data_storage/bronze/raw
+  silver_cleaned: data_storage/silver/cleaned
+  silver_quarantined: data_storage/silver/quarantined
+  gold_transformed: data_storage/gold/transformed
+  gold_hashed: data_storage/gold/hashed
+  reports: reports
+
+# --------------------------------
+# Output file names and format
+# --------------------------------
+outputs:
+  format: csv         # csv or parquet
+  cleaned_filename: placeholder
+  quarantined_filename: placeholder
+  transformed_filename: placeholder
+  hashed_filename: placeholder
+
+# --------------------------------
+# Project Data Scope
+# --------------------------------
+scope:
+  start_year_month: "2012-01" # inclusive
+  end_year_month: "2017-12"   # inclusive
+  out_of_date_scope_action: quarantine    # quarantine or drop
+  authoritative_dataset_id: d_43f493c6c50d54243cc1eab0df142d6a # dataset containing 2012-01
+  data_month_col : month
+
+reference:
+  authoritative_dataset_month: "2012-01"
+  authoritative_schema: true
+
