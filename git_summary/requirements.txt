@@ -1,0 +1,17 @@
+ipykernel
+pyyaml
+polars
+pathlib
+requests
+typing
+logging
+time
+datetime
+hashlib
+hmac
+dataclasses
+yaml
+ydata
+pyarrow
+ipywidgets
+setuptools<81

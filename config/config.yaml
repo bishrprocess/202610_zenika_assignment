@@ -1,0 +1,175 @@
+# paths relative to repo root
+# Secrets from env variables
+
+project:
+  name: 202610_zenika_assignment
+  log_level: INFO             # Alternatives: DEBUG or INFO or Warning or Error
+
+# --------------------------------
+# Bronze Ingestion (Source: data.gov.sg)
+# --------------------------------
+
+source:
+  collection_id: 189
+  collection_metadata_url: "https://api-production.data.gov.sg/v2/public/api/collections/{collection_id}/metadata?withDatasetMetadata=true"
+  initiate_download_url: "https://api-open.data.gov.sg/v1/public/api/datasets/{dataset_id}/initiate-download"
+  request_timeout_seconds: 30
+  download_timeout_seconds: 300
+  rate_limit_delay_seconds: 10
+  max_retries: 3
+  retry_backoff_seconds: 2
+  chunk_size_bytes: 1048576 # 1 MiB
+
+# --------------------------------
+# Paths
+# --------------------------------
+paths:
+  bronze_raw: data_storage/bronze/raw
+  silver_combined: data_storage/silver/combined
+  silver_cleaned: data_storage/silver/cleaned
+  silver_quarantined: data_storage/silver/quarantined
+  gold_transformed: data_storage/gold/transformed
+  gold_hashed: data_storage/gold/hashed
+  reports: reports
+  profiling: reports/profiling
+
+# --------------------------------
+# Output file names and format
+# --------------------------------
+outputs:
+  format: parquet         # parquet
+  silver_combined_filename: resale_combined
+  silver_cleaned_filename: resale_cleaned
+  silver_quarantined_filename: resale_quarantined
+  silver_authoritative_dataset_set: resale_authoritative_dataset_set
+  gold_transformed_filename: resale_unique_identifiers
+  gold_hashed_filename: resale_hashed_identifiers
+
+# --------------------------------
+# Project Data Scope
+# --------------------------------
+scope:
+  start_year_month: "2012-01" # inclusive
+  end_year_month: "2017-12"   # inclusive
+  out_of_date_scope_action: quarantine    # quarantine or drop
+  authoritative_dataset_id: d_43f493c6c50d54243cc1eab0df142d6a # dataset containing 2012-01
+  data_month_col: month # data column names should come from authoritative dataset since it determines the schema
+  data_block_col: block
+  data_town_col: town
+  data_resale_price_col: resale_price
+  data_floor_area_sqm_col: floor_area_sqm
+  data_lease_commence_date_col: lease_commence_date
+  source_filename_col: source_file
+
+# --------------------------------
+# Authoritative reference
+# --------------------------------
+reference:
+  authoritative_dataset_month: "2012-01"
+  authoritative_schema: true
+
+# --------------------------------
+# Data Profiling
+# --------------------------------
+profiling:
+  authoritative_dataset_numeric_columns:
+    - floor_area_sqm
+    - lease_commence_date
+    - resale_price
+
+# --------------------------------
+# Data Validation and Cleaning - General and Categorical based on authoritative set
+# --------------------------------
+validation:
+  reject_reason_col: reject_reason
+  categorical_columns:
+    - town
+    - flat_type
+    - flat_model
+    - storey_range
+  case_sensitive: true  # True = more strict
+  strip_whitespace: false # True = less strict
+  required_columns: # As per strict authoritative set analysis
+    - month
+    - town
+    - flat_type
+    - block
+    - street_name
+    - storey_range
+    - floor_area_sqm
+    - flat_model
+    - lease_commence_date
+    - resale_price
+  numeric_checks_resale_price_min: 0
+  numeric_checks_floor_area_sqm_min: 0
+  duplicate_keep: first # Options: first or last
+
+
+# --------------------------------
+# Silver - Remaining Lease Calculation
+# --------------------------------
+calc_remaining_lease:
+  lease_calc_period_end_date: "2027-01-01"
+  remaining_lease_years_col: remaining_lease_years
+  remaining_lease_months_col: remaining_lease_months
+  remaining_lease_text_col: remaining_lease_text
+  lease_full_term_years: 99
+  lease_year_start_month: 1 # 1 = January
+
+# --------------------------------
+# Silver - Anomaly Detection Resale Price
+# --------------------------------
+anomaly:
+  flag_col: is_anomaly
+  anomaly_reasons_col: anomaly_reasons
+  action: flag # Supported options: flag, quarantine
+  anomaly_method: iqr       # Supported options: iqr, modified_zscore
+  peer_group_by_cols:
+    - year
+    - flat_type
+    - town
+  peer_fallback_cols:
+    - year
+    - flat_type
+  min_group_size: 30
+  iqr_multiplier: 1.5
+  modified_zscore_threshold: 3.5
+  enable_resale_price_per_sqm: true
+  low_bound_resale_price_per_sqm: 3000
+  high_bound_resale_price_per_sqm: 8000
+
+# --------------------------------
+# Gold - Resale Identifier
+# --------------------------------
+identifier:
+  resale_base_id_col: _base_resale_identifier # Before uniqueness
+  resale_id_col: resale_identifier
+  prefix: "S"
+  block_digits: 3 # configured number of 1st digits from block column after removing non-int chars, left-padded w. 0s
+  price_digits: 3 # configured number of 1st digits of avg resale price per configured avg_group_cols
+  avg_group_cols: [month, town, flat_type] # look at validation.required_columns for more options
+  avg_resale_price_col: _avg_price
+  base_identifier_col: _base_id
+  sequence_col: _seq
+  row_num_col: _row_num
+  group_size_col: _group_size
+  uniqueness:
+    tie_breaker_cols:
+      - month
+      - town
+      - flat_type
+    suffix_separator: '-'
+    suffix_width: 3
+    strategy: sequence_suffix
+
+# --------------------------------
+# Gold - Resale Identifier De-identifier
+# --------------------------------
+deidentify:
+  algorithm: hmac_sha256
+  digest: hex
+  hash_id_col: resale_identifier_hashed
+  secret_env_var: HASH_PEPPER
+  min_secret_length: 32 # defaults to 32 if omitted
+  drop_plain_identifier: true # defaults to true if omitted
+
