@@ -199,7 +199,11 @@ Repository layout:
 │   ├── data_profiling_report.md       insights across the pipeline and the quarantine bucket
 │   ├── assumptions_and_insights.md
 │   └── profiling/                     ydata-profiling HTML/JSON, per-stage metrics, reference value sets
-└── architecture/                      Part 2
+└── prod_architecture/                      Part 2
+│   ├── architecture.md                architecture explanation
+│   ├── hdb_..._end_to_end.png         end-to-end solution architecture diagram
+│   ├── hdb_..._pipeline.drawio.png    etl data pipeline architecture diagram
+│   └── hdb_...security....drawio.png  security and networking architecture diagram                 
 ```
 
 ## Pipeline steps and rules
