@@ -29,7 +29,7 @@ traced back. However, I did use 2-3 draw.io objects for users and rectangles.
 
 Decisions are explained in later sections.
 
-![End-to-end architecture](hdb_resale_aws_prod_architecture_end_to_end.png)
+![End-to-end architecture](hdb_resale_aws_prod_architecture_end_to_end_fixed.drawio.png)
 
 
 | **Step** | **What happens** | **Service** |
@@ -114,7 +114,7 @@ reproducible across key rotations which is a requirement that was inferred but n
 
 ### 3.2 Network and component segmentation
 
-![Network Segmentation and Security](hdb_resale_aws_production_security_architecture.drawio.png)
+![Network Segmentation and Security](hdb_resale_aws_production_security_architecture_fixed.drawio.png)
 
 The platform VPC spans two Availability Zones and has three subnet tiers, each with one job:
 
